@@ -62,7 +62,7 @@ class QBMigrator(Document):
 	def _migrate(self):
 		try:
 			self.set_indicator("In Progress")
-			# Add qb_id field to every document so that we can lookup by Id reference
+			# Add quickbooks_id field to every document so that we can lookup by Id reference
 			# provided by documents in API responses.
 			# Also add a company field to Customer Supplier and Item
 			self._make_custom_fields()
@@ -141,7 +141,7 @@ class QBMigrator(Document):
 		self.save()
 
 	def _make_custom_fields(self):
-		doctypes_for_qb_id_field = [
+		doctypes_for_quickbooks_id_field = [
 			"Account",
 			"Customer",
 			"Address",
@@ -151,8 +151,8 @@ class QBMigrator(Document):
 			"Journal Entry",
 			"Purchase Invoice",
 		]
-		for doctype in doctypes_for_qb_id_field:
-			self._make_custom_qb_id_field(doctype)
+		for doctype in doctypes_for_quickbooks_id_field:
+			self._make_custom_quickbooks_id_field(doctype)
 
 		doctypes_for_company_field = ["Customer", "Item", "Supplier"]
 		for doctype in doctypes_for_company_field:
@@ -160,14 +160,14 @@ class QBMigrator(Document):
 
 		frappe.db.commit()
 
-	def _make_custom_qb_id_field(self, doctype):
-		if not frappe.get_meta(doctype).has_field("qb_id"):
+	def _make_custom_quickbooks_id_field(self, doctype):
+		if not frappe.get_meta(doctype).has_field("quickbooks_id"):
 			frappe.get_doc(
 				{
 					"doctype": "Custom Field",
 					"label": "QB ID",
 					"dt": doctype,
-					"fieldname": "qb_id",
+					"fieldname": "quickbooks_id",
 					"fieldtype": "Data",
 				}
 			).insert()
@@ -367,7 +367,7 @@ class QBMigrator(Document):
 			elif "value" in section["Header"]["ColData"][0] and section["Header"]["ColData"][0]["value"]:
 				# For some reason during migrating UK company, account id is not available.
 				# preprocess_accounts retains name:account mapping in self.accounts
-				# This mapping can then be used to obtain qb_id for correspondong account
+				# This mapping can then be used to obtain quickbooks_id for correspondong account
 				# Rest is trivial
 
 				# Some Lines in General Leder Report are shown under Not Specified
@@ -424,7 +424,7 @@ class QBMigrator(Document):
 		# Map Quickbooks Account Types to ERPNext root_accunts and and root_type
 		try:
 			if not frappe.db.exists(
-				{"doctype": "Account", "qb_id": account["Id"], "company": self.company}
+				{"doctype": "Account", "quickbooks_id": account["Id"], "company": self.company}
 			):
 				is_child = account["SubAccount"]
 				is_group = account["is_group"]
@@ -446,7 +446,7 @@ class QBMigrator(Document):
 				frappe.get_doc(
 					{
 						"doctype": "Account",
-						"qb_id": account_id,
+						"quickbooks_id": account_id,
 						"account_name": self._get_unique_account_name(account["Name"]),
 						"root_type": mapping[account["AccountType"]],
 						"account_type": self._get_account_type(account),
@@ -462,7 +462,7 @@ class QBMigrator(Document):
 					frappe.get_doc(
 						{
 							"doctype": "Account",
-							"qb_id": account["Id"],
+							"quickbooks_id": account["Id"],
 							"account_name": self._get_unique_account_name(account["Name"]),
 							"root_type": mapping[account["AccountType"]],
 							"account_type": self._get_account_type(account),
@@ -500,14 +500,14 @@ class QBMigrator(Document):
 			if not frappe.db.exists(
 				{
 					"doctype": "Account",
-					"qb_id": "TaxRate - {}".format(tax_rate["Id"]),
+					"quickbooks_id": "TaxRate - {}".format(tax_rate["Id"]),
 					"company": self.company,
 				}
 			):
 				frappe.get_doc(
 					{
 						"doctype": "Account",
-						"qb_id": "TaxRate - {}".format(tax_rate["Id"]),
+						"quickbooks_id": "TaxRate - {}".format(tax_rate["Id"]),
 						"account_name": "{} - QB".format(tax_rate["Name"]),
 						"root_type": "Liability",
 						"parent_account": encode_company_abbr("{} - QB".format("Liability"), self.company),
@@ -528,7 +528,7 @@ class QBMigrator(Document):
 	def _save_customer(self, customer):
 		try:
 			if not frappe.db.exists(
-				{"doctype": "Customer", "qb_id": customer["Id"], "company": self.company}
+				{"doctype": "Customer", "quickbooks_id": customer["Id"], "company": self.company}
 			):
 				try:
 					receivable_account = frappe.get_all(
@@ -544,7 +544,7 @@ class QBMigrator(Document):
 				erpcustomer = frappe.get_doc(
 					{
 						"doctype": "Customer",
-						"qb_id": customer["Id"],
+						"quickbooks_id": customer["Id"],
 						"customer_name": encode_company_abbr(customer["DisplayName"], self.company),
 						"customer_type": "Company",
 						"customer_group": "Default",
@@ -564,12 +564,12 @@ class QBMigrator(Document):
 	def _save_item(self, item):
 		try:
 			if not frappe.db.exists(
-				{"doctype": "Item", "qb_id": item["Id"], "company": self.company}
+				{"doctype": "Item", "quickbooks_id": item["Id"], "company": self.company}
 			):
 				if item["Type"] in ("Service", "Inventory"):
 					item_dict = {
 						"doctype": "Item",
-						"qb_id": item["Id"],
+						"quickbooks_id": item["Id"],
 						"item_code": encode_company_abbr(item["Name"], self.company),
 						"stock_uom": "Unit",
 						"is_stock_item": 0,
@@ -593,12 +593,12 @@ class QBMigrator(Document):
 	def _save_vendor(self, vendor):
 		try:
 			if not frappe.db.exists(
-				{"doctype": "Supplier", "qb_id": vendor["Id"], "company": self.company}
+				{"doctype": "Supplier", "quickbooks_id": vendor["Id"], "company": self.company}
 			):
 				erpsupplier = frappe.get_doc(
 					{
 						"doctype": "Supplier",
-						"qb_id": vendor["Id"],
+						"quickbooks_id": vendor["Id"],
 						"supplier_name": encode_company_abbr(vendor["DisplayName"], self.company),
 						"supplier_group": "All Supplier Groups",
 						"company": self.company,
@@ -626,37 +626,37 @@ class QBMigrator(Document):
 		# item list is populated from the corresponding transaction, these items are not shown in api response
 		# Also as of now there is no way of fetching the corresponding transaction from api
 		# We in order to correctly reflect account balance make an equivalent Journal Entry
-		qb_id = "Invoice - {}".format(invoice["Id"])
+		quickbooks_id = "Invoice - {}".format(invoice["Id"])
 		if any(
 			linked["TxnType"] in ("StatementCharge", "ReimburseCharge") for linked in invoice["LinkedTxn"]
 		):
-			self._save_invoice_as_journal_entry(invoice, qb_id)
+			self._save_invoice_as_journal_entry(invoice, quickbooks_id)
 		else:
-			self._save_sales_invoice(invoice, qb_id)
+			self._save_sales_invoice(invoice, quickbooks_id)
 
 	def _save_credit_memo(self, credit_memo):
 		# Credit Memo is equivalent to a return Sales Invoice
-		qb_id = "Credit Memo - {}".format(credit_memo["Id"])
-		self._save_sales_invoice(credit_memo, qb_id, is_return=True)
+		quickbooks_id = "Credit Memo - {}".format(credit_memo["Id"])
+		self._save_sales_invoice(credit_memo, quickbooks_id, is_return=True)
 
 	def _save_sales_receipt(self, sales_receipt):
 		# Sales Receipt is equivalent to a POS Sales Invoice
-		qb_id = "Sales Receipt - {}".format(sales_receipt["Id"])
-		self._save_sales_invoice(sales_receipt, qb_id, is_pos=True)
+		quickbooks_id = "Sales Receipt - {}".format(sales_receipt["Id"])
+		self._save_sales_invoice(sales_receipt, quickbooks_id, is_pos=True)
 
 	def _save_refund_receipt(self, refund_receipt):
 		# Refund Receipt is equivalent to a return POS Sales Invoice
-		qb_id = "Refund Receipt - {}".format(refund_receipt["Id"])
-		self._save_sales_invoice(refund_receipt, qb_id, is_return=True, is_pos=True)
+		quickbooks_id = "Refund Receipt - {}".format(refund_receipt["Id"])
+		self._save_sales_invoice(refund_receipt, quickbooks_id, is_return=True, is_pos=True)
 
-	def _save_sales_invoice(self, invoice, qb_id, is_return=False, is_pos=False):
+	def _save_sales_invoice(self, invoice, quickbooks_id, is_return=False, is_pos=False):
 		try:
 			if not frappe.db.exists(
-				{"doctype": "Sales Invoice", "qb_id": qb_id, "company": self.company}
+				{"doctype": "Sales Invoice", "quickbooks_id": quickbooks_id, "company": self.company}
 			):
 				invoice_dict = {
 					"doctype": "Sales Invoice",
-					"qb_id": qb_id,
+					"quickbooks_id": quickbooks_id,
 					# Quickbooks uses ISO 4217 Code
 					# of course this gonna come back to bite me
 					"currency": invoice["CurrencyRef"]["value"],
@@ -669,7 +669,7 @@ class QBMigrator(Document):
 					"customer": frappe.get_all(
 						"Customer",
 						filters={
-							"qb_id": invoice["CustomerRef"]["value"],
+							"quickbooks_id": invoice["CustomerRef"]["value"],
 							"company": self.company,
 						},
 					)[0]["name"],
@@ -713,7 +713,7 @@ class QBMigrator(Document):
 					item = frappe.db.get_all(
 						"Item",
 						filters={
-							"qb_id": line["SalesItemLineDetail"]["ItemRef"]["value"],
+							"quickbooks_id": line["SalesItemLineDetail"]["ItemRef"]["value"],
 							"company": self.company,
 						},
 						fields=["name", "stock_uom"],
@@ -794,7 +794,7 @@ class QBMigrator(Document):
 			if line["DetailType"] == "DiscountLineDetail" and "Amount" in line["DiscountLineDetail"]:
 				return line
 
-	def _save_invoice_as_journal_entry(self, invoice, qb_id):
+	def _save_invoice_as_journal_entry(self, invoice, quickbooks_id):
 		try:
 			accounts = []
 			for line in self.general_ledger["Invoice"][invoice["Id"]]["lines"]:
@@ -807,13 +807,13 @@ class QBMigrator(Document):
 					account_line["party_type"] = "Customer"
 					account_line["party"] = frappe.get_all(
 						"Customer",
-						filters={"qb_id": invoice["CustomerRef"]["value"], "company": self.company},
+						filters={"quickbooks_id": invoice["CustomerRef"]["value"], "company": self.company},
 					)[0]["name"]
 
 				accounts.append(account_line)
 
 			posting_date = invoice["TxnDate"]
-			self.__save_journal_entry(qb_id, accounts, posting_date)
+			self.__save_journal_entry(quickbooks_id, accounts, posting_date)
 		except Exception as e:
 			self._log_error(e, [invoice, accounts])
 
@@ -842,20 +842,20 @@ class QBMigrator(Document):
 					)
 			return accounts
 
-		qb_id = "Journal Entry - {}".format(journal_entry["Id"])
+		quickbooks_id = "Journal Entry - {}".format(journal_entry["Id"])
 		accounts = _get_je_accounts(journal_entry["Line"])
 		posting_date = journal_entry["TxnDate"]
-		self.__save_journal_entry(qb_id, accounts, posting_date)
+		self.__save_journal_entry(quickbooks_id, accounts, posting_date)
 
-	def __save_journal_entry(self, qb_id, accounts, posting_date):
+	def __save_journal_entry(self, quickbooks_id, accounts, posting_date):
 		try:
 			if not frappe.db.exists(
-				{"doctype": "Journal Entry", "qb_id": qb_id, "company": self.company}
+				{"doctype": "Journal Entry", "quickbooks_id": quickbooks_id, "company": self.company}
 			):
 				je = frappe.get_doc(
 					{
 						"doctype": "Journal Entry",
-						"qb_id": qb_id,
+						"quickbooks_id": quickbooks_id,
 						"company": self.company,
 						"posting_date": posting_date,
 						"accounts": accounts,
@@ -869,23 +869,23 @@ class QBMigrator(Document):
 
 	def _save_bill(self, bill):
 		# Bill is equivalent to a Purchase Invoice
-		qb_id = "Bill - {}".format(bill["Id"])
-		self.__save_purchase_invoice(bill, qb_id)
+		quickbooks_id = "Bill - {}".format(bill["Id"])
+		self.__save_purchase_invoice(bill, quickbooks_id)
 
 	def _save_vendor_credit(self, vendor_credit):
 		# Vendor Credit is equivalent to a return Purchase Invoice
-		qb_id = "Vendor Credit - {}".format(vendor_credit["Id"])
-		self.__save_purchase_invoice(vendor_credit, qb_id, is_return=True)
+		quickbooks_id = "Vendor Credit - {}".format(vendor_credit["Id"])
+		self.__save_purchase_invoice(vendor_credit, quickbooks_id, is_return=True)
 
-	def __save_purchase_invoice(self, invoice, qb_id, is_return=False):
+	def __save_purchase_invoice(self, invoice, quickbooks_id, is_return=False):
 		try:
 			if not frappe.db.exists(
-				{"doctype": "Purchase Invoice", "qb_id": qb_id, "company": self.company}
+				{"doctype": "Purchase Invoice", "quickbooks_id": quickbooks_id, "company": self.company}
 			):
 				credit_to_account = self._get_account_name_by_id(invoice["APAccountRef"]["value"])
 				invoice_dict = {
 					"doctype": "Purchase Invoice",
-					"qb_id": qb_id,
+					"quickbooks_id": quickbooks_id,
 					"currency": invoice["CurrencyRef"]["value"],
 					"conversion_rate": invoice.get("ExchangeRate", 1),
 					"posting_date": invoice["TxnDate"],
@@ -894,7 +894,7 @@ class QBMigrator(Document):
 					"supplier": frappe.get_all(
 						"Supplier",
 						filters={
-							"qb_id": invoice["VendorRef"]["value"],
+							"quickbooks_id": invoice["VendorRef"]["value"],
 							"company": self.company,
 						},
 					)[0]["name"],
@@ -926,7 +926,7 @@ class QBMigrator(Document):
 				item = frappe.db.get_all(
 					"Item",
 					filters={
-						"qb_id": line["ItemBasedExpenseLineDetail"]["ItemRef"]["value"],
+						"quickbooks_id": line["ItemBasedExpenseLineDetail"]["ItemRef"]["value"],
 						"company": self.company,
 					},
 					fields=["name", "stock_uom"],
@@ -980,7 +980,7 @@ class QBMigrator(Document):
 
 	def _save_payment(self, payment):
 		try:
-			qb_id = "Payment - {}".format(payment["Id"])
+			quickbooks_id = "Payment - {}".format(payment["Id"])
 			# If DepositToAccountRef is not set on payment that means it actually doesn't affect any accounts
 			# No need to record such payment
 			# Such payment record is created QB Payments API
@@ -992,15 +992,15 @@ class QBMigrator(Document):
 			for line in payment["Line"]:
 				linked_transaction = line["LinkedTxn"][0]
 				if linked_transaction["TxnType"] == "Invoice":
-					si_qb_id = "Invoice - {}".format(linked_transaction["TxnId"])
+					si_quickbooks_id = "Invoice - {}".format(linked_transaction["TxnId"])
 					# Invoice could have been saved as a Sales Invoice or a Journal Entry
 					if frappe.db.exists(
-						{"doctype": "Sales Invoice", "qb_id": si_qb_id, "company": self.company}
+						{"doctype": "Sales Invoice", "quickbooks_id": si_quickbooks_id, "company": self.company}
 					):
 						sales_invoice = frappe.get_all(
 							"Sales Invoice",
 							filters={
-								"qb_id": si_qb_id,
+								"quickbooks_id": si_quickbooks_id,
 								"company": self.company,
 							},
 							fields=["name", "customer", "debit_to"],
@@ -1011,12 +1011,12 @@ class QBMigrator(Document):
 						party_account = sales_invoice["debit_to"]
 
 					if frappe.db.exists(
-						{"doctype": "Journal Entry", "qb_id": si_qb_id, "company": self.company}
+						{"doctype": "Journal Entry", "quickbooks_id": si_quickbooks_id, "company": self.company}
 					):
 						journal_entry = frappe.get_doc(
 							"Journal Entry",
 							{
-								"qb_id": si_qb_id,
+								"quickbooks_id": si_quickbooks_id,
 								"company": self.company,
 							},
 						)
@@ -1051,26 +1051,26 @@ class QBMigrator(Document):
 				}
 			)
 			posting_date = payment["TxnDate"]
-			self.__save_journal_entry(qb_id, accounts, posting_date)
+			self.__save_journal_entry(quickbooks_id, accounts, posting_date)
 		except Exception as e:
 			self._log_error(e, [payment, accounts])
 
 	def _save_bill_payment(self, bill_payment):
 		try:
-			qb_id = "BillPayment - {}".format(bill_payment["Id"])
+			quickbooks_id = "BillPayment - {}".format(bill_payment["Id"])
 			# A BillPayment can be linked to multiple transactions
 			accounts = []
 			for line in bill_payment["Line"]:
 				linked_transaction = line["LinkedTxn"][0]
 				if linked_transaction["TxnType"] == "Bill":
-					pi_qb_id = "Bill - {}".format(linked_transaction["TxnId"])
+					pi_quickbooks_id = "Bill - {}".format(linked_transaction["TxnId"])
 					if frappe.db.exists(
-						{"doctype": "Purchase Invoice", "qb_id": pi_qb_id, "company": self.company}
+						{"doctype": "Purchase Invoice", "quickbooks_id": pi_quickbooks_id, "company": self.company}
 					):
 						purchase_invoice = frappe.get_all(
 							"Purchase Invoice",
 							filters={
-								"qb_id": pi_qb_id,
+								"quickbooks_id": pi_quickbooks_id,
 								"company": self.company,
 							},
 							fields=["name", "supplier", "credit_to"],
@@ -1105,13 +1105,13 @@ class QBMigrator(Document):
 				}
 			)
 			posting_date = bill_payment["TxnDate"]
-			self.__save_journal_entry(qb_id, accounts, posting_date)
+			self.__save_journal_entry(quickbooks_id, accounts, posting_date)
 		except Exception as e:
 			self._log_error(e, [bill_payment, accounts])
 
 	def _save_purchase(self, purchase):
 		try:
-			qb_id = "Purchase - {}".format(purchase["Id"])
+			quickbooks_id = "Purchase - {}".format(purchase["Id"])
 			# Credit Bank Account
 			accounts = [
 				{
@@ -1132,7 +1132,7 @@ class QBMigrator(Document):
 						frappe.get_doc(
 							"Item",
 							{
-								"qb_id": line["ItemBasedExpenseLineDetail"]["ItemRef"]["value"],
+								"quickbooks_id": line["ItemBasedExpenseLineDetail"]["ItemRef"]["value"],
 								"company": self.company,
 							},
 						)
@@ -1171,13 +1171,13 @@ class QBMigrator(Document):
 						del account["credit_in_account_currency"]
 
 			posting_date = purchase["TxnDate"]
-			self.__save_journal_entry(qb_id, accounts, posting_date)
+			self.__save_journal_entry(quickbooks_id, accounts, posting_date)
 		except Exception as e:
 			self._log_error(e, [purchase, accounts])
 
 	def _save_deposit(self, deposit):
 		try:
-			qb_id = "Deposit - {}".format(deposit["Id"])
+			quickbooks_id = "Deposit - {}".format(deposit["Id"])
 			# Debit Bank Account
 			accounts = [
 				{
@@ -1217,23 +1217,23 @@ class QBMigrator(Document):
 				)
 
 			posting_date = deposit["TxnDate"]
-			self.__save_journal_entry(qb_id, accounts, posting_date)
+			self.__save_journal_entry(quickbooks_id, accounts, posting_date)
 		except Exception as e:
 			self._log_error(e, [deposit, accounts])
 
 	def _save_advance_payment(self, advance_payment):
-		qb_id = "Advance Payment - {}".format(advance_payment["id"])
-		self.__save_ledger_entry_as_je(advance_payment, qb_id)
+		quickbooks_id = "Advance Payment - {}".format(advance_payment["id"])
+		self.__save_ledger_entry_as_je(advance_payment, quickbooks_id)
 
 	def _save_tax_payment(self, tax_payment):
-		qb_id = "Tax Payment - {}".format(tax_payment["id"])
-		self.__save_ledger_entry_as_je(tax_payment, qb_id)
+		quickbooks_id = "Tax Payment - {}".format(tax_payment["id"])
+		self.__save_ledger_entry_as_je(tax_payment, quickbooks_id)
 
 	def _save_inventory_qty_adjust(self, inventory_qty_adjust):
-		qb_id = "Inventory Qty Adjust - {}".format(inventory_qty_adjust["id"])
-		self.__save_ledger_entry_as_je(inventory_qty_adjust, qb_id)
+		quickbooks_id = "Inventory Qty Adjust - {}".format(inventory_qty_adjust["id"])
+		self.__save_ledger_entry_as_je(inventory_qty_adjust, quickbooks_id)
 
-	def __save_ledger_entry_as_je(self, ledger_entry, qb_id):
+	def __save_ledger_entry_as_je(self, ledger_entry, quickbooks_id):
 		try:
 			accounts = []
 			for line in ledger_entry["lines"]:
@@ -1245,7 +1245,7 @@ class QBMigrator(Document):
 				accounts.append(account_line)
 
 			posting_date = ledger_entry["date"]
-			self.__save_journal_entry(qb_id, accounts, posting_date)
+			self.__save_journal_entry(quickbooks_id, accounts, posting_date)
 		except Exception as e:
 			self._log_error(e, ledger_entry)
 
@@ -1311,7 +1311,7 @@ class QBMigrator(Document):
 
 	def _create_address(self, entity, doctype, address, address_type):
 		try:
-			if not frappe.db.exists({"doctype": "Address", "qb_id": address["Id"]}):
+			if not frappe.db.exists({"doctype": "Address", "quickbooks_id": address["Id"]}):
 				frappe.get_doc(
 					{
 						"doctype": "Address",
@@ -1346,9 +1346,9 @@ class QBMigrator(Document):
 			response = self._get(*args, **kwargs)
 		return response
 
-	def _get_account_name_by_id(self, qb_id):
+	def _get_account_name_by_id(self, quickbooks_id):
 		return frappe.get_all(
-			"Account", filters={"qb_id": qb_id, "company": self.company}
+			"Account", filters={"quickbooks_id": quickbooks_id, "company": self.company}
 		)[0]["name"]
 
 	def _publish(self, *args, **kwargs):
