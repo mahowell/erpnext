@@ -165,7 +165,7 @@ class QBMigrator(Document):
 			frappe.get_doc(
 				{
 					"doctype": "Custom Field",
-					"label": "QB ID",
+					"label": "QuickBooks ID",
 					"dt": doctype,
 					"fieldname": "quickbooks_id",
 					"fieldtype": "Data",
