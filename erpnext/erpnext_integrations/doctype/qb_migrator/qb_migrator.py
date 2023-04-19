@@ -1,6 +1,7 @@
 # Copyright (c) 2018, Frappe Technologies Pvt. Ltd. and contributors
 # For license information, please see license.txt
 
+#mhh, notes in order to use: Add a customer group called "Default", I put it under Commercial
 
 import json
 import traceback
@@ -73,10 +74,10 @@ class QBMigrator(Document):
 			# (When Item table is not present, This appens when Invoice is attached with a "StatementCharge" "ReimburseCharge
 			# Details of both of these cannot be fetched from API)
 			# Their GL entries need to be generated from GeneralLedger Report.
-			self._fetch_general_ledger()
+			#mhh self._fetch_general_ledger()
 
 			# QB data can have transactions that do not fall in existing fiscal years in ERPNext
-			self._create_fiscal_years()
+			#mhh self._create_fiscal_years()
 
 			self._allow_fraction_in_unit()
 
@@ -84,31 +85,31 @@ class QBMigrator(Document):
 			# Invoice can be an exception sometimes though (as explained above).
 			entities_for_normal_transform = [
 				"Customer",
-				"Item",
+				#"Item",
 				"Vendor",
-				"Preferences",
-				"JournalEntry",
-				"Purchase",
-				"Deposit",
-				"Invoice",
-				"CreditMemo",
-				"SalesReceipt",
-				"RefundReceipt",
-				"Bill",
-				"VendorCredit",
-				"Payment",
-				"BillPayment",
+				# "Preferences",
+				# "JournalEntry",
+				# "Purchase",
+				# "Deposit",
+				# "Invoice",
+				# "CreditMemo",
+				# "SalesReceipt",
+				# "RefundReceipt",
+				# "Bill",
+				# "VendorCredit",
+				# "Payment",
+				# "BillPayment",
 			]
 			for entity in entities_for_normal_transform:
 				self._migrate_entries(entity)
 
 			# Following entries are not available directly from API, Need to be regenrated from GeneralLedger Report
 			entities_for_gl_transform = [
-				"Advance Payment",
-				"Tax Payment",
-				"Sales Tax Payment",
-				"Purchase Tax Payment",
-				"Inventory Qty Adjust",
+				# "Advance Payment",
+				# "Tax Payment",
+				# "Sales Tax Payment",
+				# "Purchase Tax Payment",
+				# "Inventory Qty Adjust",
 			]
 			for entity in entities_for_gl_transform:
 				self._migrate_entries_from_gl(entity)
@@ -545,8 +546,8 @@ class QBMigrator(Document):
 						"doctype": "Customer",
 						"qb_id": customer["Id"],
 						"customer_name": encode_company_abbr(customer["DisplayName"], self.company),
-						"customer_type": "Individual",
-						"customer_group": "Commercial",
+						"customer_type": "Company",
+						"customer_group": "Default",
 						"default_currency": customer["CurrencyRef"]["value"],
 						"accounts": [{"company": self.company, "account": receivable_account}],
 						"territory": "All Territories",
@@ -1318,7 +1319,13 @@ class QBMigrator(Document):
 						"address_title": entity.name,
 						"address_type": address_type,
 						"address_line1": address["Line1"],
+						"address_line2": address["Line2"],
 						"city": address["City"],
+						"state": address["CountrySubDivisionCode"],
+						"pincode": address["PostalCode"],
+						"email_id": address["PrimaryEmailAddr"]["Address"],
+						"phone": address["PrimaryPhone"]["FreeFormNumber"],
+						"fax": address["Fax"]["FreeFormNumber"],
 						"links": [{"link_doctype": doctype, "link_name": entity.name}],
 					}
 				).insert()
