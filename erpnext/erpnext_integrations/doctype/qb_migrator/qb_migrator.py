@@ -84,9 +84,10 @@ class QBMigrator(Document):
 			# Following entities are directly available from API
 			# Invoice can be an exception sometimes though (as explained above).
 			entities_for_normal_transform = [
-				"Customer",
-				#"Item",
-				"Vendor",
+				#"Customer",
+				"Item",
+				#"Vendor",
+				
 				# "Preferences",
 				# "JournalEntry",
 				# "Purchase",
@@ -146,6 +147,7 @@ class QBMigrator(Document):
 			"Customer",
 			"Address",
 			"Item",
+			"Item Price",
 			"Supplier",
 			"Sales Invoice",
 			"Journal Entry",
@@ -569,30 +571,47 @@ class QBMigrator(Document):
 			self._log_error(e, customer)
 
 	def _save_item(self, item):
-		try:
-			if not frappe.db.exists(
-				{"doctype": "Item", "quickbooks_id": item["Id"], "company": self.company}
-			):
-				if item["Type"] in ("Service", "Inventory"):
-					item_dict = {
-						"doctype": "Item",
-						"quickbooks_id": item["Id"],
-						"item_code": encode_company_abbr(item["Name"], self.company),
-						"stock_uom": "Unit",
-						"is_stock_item": 0,
-						"item_group": "All Item Groups",
-						"company": self.company,
-						"item_defaults": [{"company": self.company, "default_warehouse": self.default_warehouse}],
-					}
-					if "ExpenseAccountRef" in item:
-						expense_account = self._get_account_name_by_id(item["ExpenseAccountRef"]["value"])
-						item_dict["item_defaults"][0]["expense_account"] = expense_account
-					if "IncomeAccountRef" in item:
-						income_account = self._get_account_name_by_id(item["IncomeAccountRef"]["value"])
-						item_dict["item_defaults"][0]["income_account"] = income_account
-					frappe.get_doc(item_dict).insert()
-		except Exception as e:
-			self._log_error(e, item)
+		if item["Type"] in ("Service", "Inventory"):
+			item_dict = {
+				"doctype": "Item",
+				"quickbooks_id": item["Id"],
+				"item_code": encode_company_abbr(item["Name"], self.company),
+				"item_name": item.get("Name"),
+				"item_description": item.get("Description"),
+				"disabled": 0 if item.get("Active") else 1,
+				"allow_negative_stock": 1,
+				"stock_uom": "Unit",
+				"is_stock_item": 1 if item.get("TrackQtyOnHand") else 0,
+				"opening_stock": item.get("QtyOnHand", 0),
+				"item_group": "All Item Groups",
+				"company": self.company,
+				"item_defaults": [{"company": self.company, "default_warehouse": self.default_warehouse}],
+			}
+			if "ExpenseAccountRef" in item:
+				expense_account = self._get_account_name_by_id(item["ExpenseAccountRef"]["value"])
+				item_dict["item_defaults"][0]["expense_account"] = expense_account
+			if "IncomeAccountRef" in item:
+				income_account = self._get_account_name_by_id(item["IncomeAccountRef"]["value"])
+				item_dict["item_defaults"][0]["income_account"] = income_account
+
+			try:
+				if not frappe.db.exists(
+					{"doctype": "Item", "quickbooks_id": item["Id"], "company": self.company}
+				):
+					erpitem = frappe.get_doc(item_dict).insert()
+					self._log_error(e, item)
+				else:
+					erpitem = frappe.get_doc("Item", {"quickbooks_id": item["Id"]})
+					erpitem.update(item_dict)
+					erpitem.save()
+					self._log_error(e, item)
+
+				# Set item price
+				self._create_item_price(erpitem, "Item Price", item, item_dict)
+			except Exception as e:
+				self._log_error(e, item)
+			
+			exit();
 
 	def _allow_fraction_in_unit(self):
 		frappe.db.set_value("UOM", "Unit", "must_be_whole_number", 0)
@@ -1346,6 +1365,44 @@ class QBMigrator(Document):
 				address.save()
 		except Exception as e:
 			self._log_error(e, address)
+
+	def _create_item_price(self, entity, doctype, data, item_dict):
+		try:
+			# Buying
+			item_obj = {
+				"doctype": "Item Price",
+				"price_list": "Standard Buying",
+				"item_code": item_dict["item_code"],
+				"quickbooks_id": data["Id"],
+				"price_list_rate": float(data.get("PurchaseCost", 0)),
+			}
+			if not frappe.db.exists(
+				"Item Price", {"price_list": "Standard Buying", "item_code": item_dict["item_code"]}
+			):
+				frappe.get_doc(item_obj).insert()
+			else:
+				data_save = frappe.get_doc("Item Price", {"item_code": item_dict["item_code"], "price_list": "Standard Buying"})
+				data_save.update(item_obj)
+				data_save.save()
+
+			# Selling
+			item_obj = {
+				"doctype": "Item Price",
+				"price_list": "Standard Selling",
+				"item_code": item_dict["item_code"],
+				"quickbooks_id": data["Id"],
+				"price_list_rate": float(data.get("UnitPrice", 0)),
+			}
+			if not frappe.db.exists(
+				"Item Price", {"price_list": "Standard Selling", "item_code": item_dict["item_code"]}
+			):
+				frappe.get_doc(item_obj).insert()
+			else:
+				data_save = frappe.get_doc("Item Price", {"item_code": item_dict["item_code"], "price_list": "Standard Selling"})
+				data_save.update(item_obj)
+				data_save.save()
+		except Exception as e:
+			self._log_error(e, data)
 
 	def _get(self, *args, **kwargs):
 		kwargs["headers"] = {
