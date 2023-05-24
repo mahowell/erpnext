@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 #mhh, notes in order to use: Add a customer group called "Default", I put it under Commercial
+#mhh, setup warehouse list
 
 import json
 import traceback
@@ -349,6 +350,10 @@ class QBMigrator(Document):
 				}
 			)
 			entity_method_map[entity](entry)
+			#mhh begin for testing stop after 1
+			if entity == "Item":
+				break
+			#mhh end for testing stop after 1
 		frappe.db.commit()
 
 	def _preprocess_entries(self, entity, entries):
@@ -577,12 +582,14 @@ class QBMigrator(Document):
 				"quickbooks_id": item["Id"],
 				"item_code": encode_company_abbr(item["Name"], self.company),
 				"item_name": item.get("Name"),
-				"item_description": item.get("Description"),
+				"description": item.get("Description"),
 				"disabled": 0 if item.get("Active") else 1,
 				"allow_negative_stock": 1,
 				"stock_uom": "Unit",
 				"is_stock_item": 1 if item.get("TrackQtyOnHand") else 0,
-				"opening_stock": item.get("QtyOnHand", 0),
+				"opening_stock": 0 if item.get("QtyOnHand") < 0 else item.get("QtyOnHand", 0),
+				"valuation_rate": float(item.get("PurchaseCost", 0)),
+				"valuation_method": "LIFO",
 				"item_group": "All Item Groups",
 				"company": self.company,
 				"item_defaults": [{"company": self.company, "default_warehouse": self.default_warehouse}],
@@ -599,19 +606,17 @@ class QBMigrator(Document):
 					{"doctype": "Item", "quickbooks_id": item["Id"], "company": self.company}
 				):
 					erpitem = frappe.get_doc(item_dict).insert()
-					self._log_error(e, item)
+					#self._log_error({}, "INSERT " + str(erpitem.__dict__))
 				else:
 					erpitem = frappe.get_doc("Item", {"quickbooks_id": item["Id"]})
 					erpitem.update(item_dict)
 					erpitem.save()
-					self._log_error(e, item)
+					#self._log_error({}, "UPDATE " + str(item))
 
 				# Set item price
 				self._create_item_price(erpitem, "Item Price", item, item_dict)
 			except Exception as e:
 				self._log_error(e, item)
-			
-			exit();
 
 	def _allow_fraction_in_unit(self):
 		frappe.db.set_value("UOM", "Unit", "must_be_whole_number", 0)
@@ -934,7 +939,7 @@ class QBMigrator(Document):
 					"set_posting_time": 1,
 					"disable_rounded_total": 1,
 					"is_return": is_return,
-					"udpate_stock": 0,
+					"update_stock": 0,
 					"company": self.company,
 				}
 				invoice_doc = frappe.get_doc(invoice_dict)
