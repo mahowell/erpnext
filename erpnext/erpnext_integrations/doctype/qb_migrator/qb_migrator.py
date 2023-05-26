@@ -68,7 +68,7 @@ class QBMigrator(Document):
 			# Also add a company field to Customer Supplier and Item
 			self._make_custom_fields()
 
-			mhh self._migrate_accounts()
+			self._migrate_accounts()
 
 			# Some Quickbooks Entities like Advance Payment, Payment aren't available firectly from API
 			# Sales Invoice also sometimes needs to be saved as a Journal Entry
