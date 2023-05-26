@@ -68,7 +68,7 @@ class QBMigrator(Document):
 			# Also add a company field to Customer Supplier and Item
 			self._make_custom_fields()
 
-			#mhh self._migrate_accounts()
+			mhh self._migrate_accounts()
 
 			# Some Quickbooks Entities like Advance Payment, Payment aren't available firectly from API
 			# Sales Invoice also sometimes needs to be saved as a Journal Entry
@@ -577,6 +577,7 @@ class QBMigrator(Document):
 
 	def _save_item(self, item):
 		if item["Type"] in ("Service", "Inventory"):
+			#qty_on_hand = int(0 if item.get("QtyOnHand") is None else item.get("QtyOnHand"))
 			item_dict = {
 				"doctype": "Item",
 				"quickbooks_id": item["Id"],
@@ -586,7 +587,10 @@ class QBMigrator(Document):
 				"disabled": 0 if item.get("Active") else 1,
 				"allow_negative_stock": 1,
 				"stock_uom": "Unit",
-				"is_stock_item": 1 if item.get("TrackQtyOnHand") else 0,
+				# "is_stock_item": 1 if item.get("TrackQtyOnHand") else 0,
+				# "opening_stock": 0 if item.get("QtyOnHand") < 0 else item.get("QtyOnHand", 0),
+				# "valuation_rate": float(item.get("PurchaseCost", 0)),
+				"is_stock_item": 1 if item.get("TrackQtyOnHand", 0) else 0,
 				"opening_stock": 0 if item.get("QtyOnHand", 0) < 0 else item.get("QtyOnHand", 0),
 				"valuation_rate": float(item.get("UnitPrice", 0)) if float(item.get("PurchaseCost", 0)) <= 0 else float(item.get("PurchaseCost", 0)),
 				"valuation_method": "FIFO",
