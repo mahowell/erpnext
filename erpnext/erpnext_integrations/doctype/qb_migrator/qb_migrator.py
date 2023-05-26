@@ -68,7 +68,7 @@ class QBMigrator(Document):
 			# Also add a company field to Customer Supplier and Item
 			self._make_custom_fields()
 
-			self._migrate_accounts()
+			#mhh self._migrate_accounts()
 
 			# Some Quickbooks Entities like Advance Payment, Payment aren't available firectly from API
 			# Sales Invoice also sometimes needs to be saved as a Journal Entry
@@ -351,8 +351,8 @@ class QBMigrator(Document):
 			)
 			entity_method_map[entity](entry)
 			#mhh begin for testing stop after 1
-			if entity == "Item":
-				break
+			# if entity == "Item":
+			# 	break
 			#mhh end for testing stop after 1
 		frappe.db.commit()
 
@@ -549,7 +549,7 @@ class QBMigrator(Document):
 			customer_obj ={
 				"doctype": "Customer",
 				"quickbooks_id": customer["Id"],
-				"customer_name": encode_company_abbr(customer["DisplayName"], self.company),
+				"customer_name": customer["DisplayName"],
 				"customer_type": "Company",
 				"customer_group": "Default",
 				"default_currency": customer["CurrencyRef"]["value"],
@@ -580,17 +580,17 @@ class QBMigrator(Document):
 			item_dict = {
 				"doctype": "Item",
 				"quickbooks_id": item["Id"],
-				"item_code": encode_company_abbr(item["Name"], self.company),
+				"item_code": item["Name"],
 				"item_name": item.get("Name"),
 				"description": item.get("Description"),
 				"disabled": 0 if item.get("Active") else 1,
 				"allow_negative_stock": 1,
 				"stock_uom": "Unit",
 				"is_stock_item": 1 if item.get("TrackQtyOnHand") else 0,
-				"opening_stock": 0 if item.get("QtyOnHand") < 0 else item.get("QtyOnHand", 0),
-				"valuation_rate": float(item.get("PurchaseCost", 0)),
-				"valuation_method": "LIFO",
-				"item_group": "All Item Groups",
+				"opening_stock": 0 if item.get("QtyOnHand", 0) < 0 else item.get("QtyOnHand", 0),
+				"valuation_rate": float(item.get("UnitPrice", 0)) if float(item.get("PurchaseCost", 0)) <= 0 else float(item.get("PurchaseCost", 0)),
+				"valuation_method": "FIFO",
+				"item_group": "Products",
 				"company": self.company,
 				"item_defaults": [{"company": self.company, "default_warehouse": self.default_warehouse}],
 			}
@@ -626,7 +626,7 @@ class QBMigrator(Document):
 			supplier_obj = {
 				"doctype": "Supplier",
 				"quickbooks_id": vendor["Id"],
-				"supplier_name": encode_company_abbr(vendor["DisplayName"], self.company),
+				"supplier_name": vendor["DisplayName"],
 				"supplier_group": "All Supplier Groups",
 				"company": self.company,
 			}
