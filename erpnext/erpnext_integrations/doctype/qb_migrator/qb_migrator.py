@@ -578,7 +578,7 @@ class QBMigrator(Document):
 
 	def _save_item(self, item):
 		if item["Type"] in ("Service", "Inventory"):
-			#qty_on_hand = int(0 if item.get("QtyOnHand") is None else item.get("QtyOnHand"))
+			qty_on_hand = int(0 if item.get("QtyOnHand", 0) is None else item.get("QtyOnHand", 0))
 			item_dict = {
 				"doctype": "Item",
 				"quickbooks_id": item["Id"],
@@ -589,12 +589,10 @@ class QBMigrator(Document):
 				"allow_negative_stock": 1,
 				"stock_uom": "Unit",
 				"is_stock_item": 1,
-				#"is_stock_item": 1 if item.get("TrackQtyOnHand") else 0,
-				"opening_stock": 0 if item.get("QtyOnHand") < 0 else item.get("QtyOnHand", 0),
+				# "is_stock_item": 1 if item.get("TrackQtyOnHand", 0) else 0,
+				"opening_stock": 0 if item.get("QtyOnHand", 0) is None or item.get("QtyOnHand", 0) < 0 else item.get("QtyOnHand", 0),
 				# "valuation_rate": float(item.get("PurchaseCost", 0)),
-				"is_stock_item": 1 if item.get("TrackQtyOnHand", 0) else 0,
-				"opening_stock": 0 if item.get("QtyOnHand", 0) < 0 or item.get("QtyOnHand", 0) is None else item.get("QtyOnHand", 0),
-				#"valuation_rate": 0 if float(item.get("PurchaseCost", 0)) <= 0 else float(item.get("PurchaseCost", 0)),
+				# dont use "valuation_rate": 0 if float(item.get("PurchaseCost", 0)) <= 0 else float(item.get("PurchaseCost", 0)),
 				"valuation_method": "FIFO",
 				"item_group": "Products",
 				"company": self.company,
