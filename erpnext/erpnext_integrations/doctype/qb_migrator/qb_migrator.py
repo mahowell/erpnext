@@ -593,7 +593,7 @@ class QBMigrator(Document):
 				# "valuation_rate": float(item.get("PurchaseCost", 0)),
 				"is_stock_item": 1 if item.get("TrackQtyOnHand", 0) else 0,
 				"opening_stock": 0 if item.get("QtyOnHand", 0) < 0 or (float(item.get("UnitPrice", 0)) <= 0 and float(item.get("PurchaseCost", 0)) <= 0) else item.get("QtyOnHand", 0),
-				"valuation_rate": 0 if float(item.get("PurchaseCost", 0)) <= 0 else float(item.get("PurchaseCost", 0)),
+				#"valuation_rate": 0 if float(item.get("PurchaseCost", 0)) <= 0 else float(item.get("PurchaseCost", 0)),
 				"valuation_method": "FIFO",
 				"item_group": "Products",
 				"company": self.company,
@@ -619,7 +619,7 @@ class QBMigrator(Document):
 					#self._log_error({}, "UPDATE " + str(item))
 
 				# Set item price
-				self._create_item_price(erpitem, "Item Price", item, item_dict)
+				# self._create_item_price(erpitem, "Item Price", item, item_dict)
 			except Exception as e:
 				self._log_error(e, item)
 
