@@ -86,7 +86,7 @@ class QBMigrator(Document):
 			# Invoice can be an exception sometimes though (as explained above).
 			entities_for_normal_transform = [
 				"Customer",
-				"Item",
+				#"Item",
 				"Vendor",
 				
 				# "Preferences",
@@ -1356,6 +1356,8 @@ class QBMigrator(Document):
 				"quickbooks_id": address["Id"],
 				"address_title": entity.name,
 				"address_type": address_type,
+				"is_primary_address": 1 if address_type == "Billing" else 0,
+				"is_shipping_address": 1 if address_type == "Shipping" else 0,
 				"address_line1": address.get("Line1"),
 				"address_line2": address.get("Line2"),
 				"city": address.get("City"),
