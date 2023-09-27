@@ -139,6 +139,9 @@ class DeliveryNote(SellingController):
 		self.validate_uom_is_integer("uom", "qty")
 		self.validate_with_previous_doc()
 
+		if self.get("_action") == "submit":
+			self.validate_duplicate_serial_nos()
+
 		from erpnext.stock.doctype.packed_item.packed_item import make_packing_list
 
 		make_packing_list(self)
@@ -411,6 +414,21 @@ class DeliveryNote(SellingController):
 			filters={"new_item_code": ["in", items_list]},
 			pluck="name",
 		)
+
+	def validate_duplicate_serial_nos(self):
+		serial_nos = []
+		for item in self.items:
+			if not item.serial_no:
+				continue
+
+			for serial_no in item.serial_no.split("\n"):
+				if serial_no in serial_nos:
+					frappe.throw(
+						_("Row #{0}: Serial No {1} is already selected.").format(item.idx, serial_no),
+						title=_("Duplicate Serial No"),
+					)
+				else:
+					serial_nos.append(serial_no)
 
 
 def update_billed_amount_based_on_so(so_detail, update_modified=True):
