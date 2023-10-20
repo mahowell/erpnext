@@ -21,7 +21,7 @@ from erpnext import encode_company_abbr
 # Request parameters will have two parameters `code` and `realmId`
 # `code` is required to acquire refresh_token and access_token
 # `realmId` is the QB Company ID. It is Needed to actually fetch data.
-@frappe.whitelist() 
+@frappe.whitelist()
 def callback(*args, **kwargs):
 	migrator = frappe.get_doc("QB Migrator")
 	migrator.set_indicator("Connecting to QB")
