@@ -281,11 +281,20 @@ class ReceivablePayableReport(object):
 
 			row.invoice_grand_total = row.invoiced
 
-			if (abs(row.outstanding) > 1.0 / 10**self.currency_precision) and (
-				(abs(row.outstanding_in_account_currency) > 1.0 / 10**self.currency_precision)
-				or (row.voucher_no in self.err_journals)
-			):
+			must_consider = False
+			if self.filters.get("for_revaluation_journals"):
+				if (abs(row.outstanding) > 1.0 / 10**self.currency_precision) or (
+					(abs(row.outstanding_in_account_currency) > 1.0 / 10**self.currency_precision)
+				):
+					must_consider = True
+			else:
+				if (abs(row.outstanding) > 1.0 / 10**self.currency_precision) and (
+					(abs(row.outstanding_in_account_currency) > 1.0 / 10**self.currency_precision)
+					or (row.voucher_no in self.err_journals)
+				):
+					must_consider = True
 
+			if must_consider:
 				# non-zero oustanding, we must consider this row
 
 				if self.is_invoice(row) and self.filters.based_on_payment_terms:
@@ -732,6 +741,7 @@ class ReceivablePayableReport(object):
 		query = (
 			qb.from_(ple)
 			.select(
+				ple.name,
 				ple.account,
 				ple.voucher_type,
 				ple.voucher_no,
@@ -745,12 +755,14 @@ class ReceivablePayableReport(object):
 				ple.account_currency,
 				ple.amount,
 				ple.amount_in_account_currency,
-				ple.remarks,
 			)
 			.where(ple.delinked == 0)
 			.where(Criterion.all(self.qb_selection_filter))
 			.where(Criterion.any(self.or_filters))
 		)
+
+		if self.filters.get("show_remarks"):
+			query = query.select(ple.remarks)
 
 		if self.filters.get("group_by_party"):
 			query = query.orderby(self.ple.party, self.ple.posting_date)
