@@ -54,7 +54,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 					this.show_alert(__("Cannot find Item with this Barcode"), "red");
 					this.clean_up();
 					this.play_fail_sound();
-					reject(new Error("No input provided"));
+					reject();
 					return;
 				}
 
@@ -63,7 +63,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 					resolve(row);
 				}).catch(() => {
 					this.play_fail_sound();
-					reject(new Error("No input provided"));
+					reject();
 				});
 			});
 		});
@@ -96,7 +96,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				if (this.dont_allow_new_row) {
 					this.show_alert(__("Maximum quantity scanned for item {0}.", [item_code]), "red");
 					this.clean_up();
-					reject(new Error("No input provided"));
+					reject();
 					return;
 				}
 				this.is_new_row = true;
@@ -110,7 +110,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 
 			if (this.is_duplicate_serial_no(row, serial_no)) {
 				this.clean_up();
-				reject(new Error("No input provided"));
+				reject();
 				return;
 			}
 
