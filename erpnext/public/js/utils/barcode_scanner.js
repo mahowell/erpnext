@@ -41,7 +41,6 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	    return new Promise(resolve => setTimeout(resolve, ms));
 	}
 	async process_scan() {
-		await this.delay(1500); // Pause for 1.5 second
 		return new Promise((resolve, reject) => {
 			let me = this;
 
@@ -68,6 +67,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 					this.play_fail_sound();
 					reject();
 				});
+				await this.delay(1500); // Pause for 1.5 second
 			});
 		});
 	}
