@@ -37,8 +37,11 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 		// }
 		this.scan_api = opts.scan_api || "erpnext.stock.utils.scan_barcode";
 	}
-
-	process_scan() {
+	function delay(ms) {
+	    return new Promise(resolve => setTimeout(resolve, ms));
+	}
+	async process_scan() {
+		await delay(1500); // Pause for 1.5 second
 		return new Promise((resolve, reject) => {
 			let me = this;
 
