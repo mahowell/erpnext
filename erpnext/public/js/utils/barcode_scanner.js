@@ -24,8 +24,8 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 
 		// optional sound name to play when scan either fails or passes.
 		// see https://frappeframework.com/docs/v14/user/en/python-api/hooks#sounds
-		this.success_sound = opts.play_success_sound;
-		this.fail_sound = opts.play_fail_sound;
+		this.success_sound = opts.play_success_sound || "chime";
+		this.fail_sound = opts.play_fail_sound || "error";
 
 		// any API that takes `search_value` as input and returns dictionary as follows
 		// {
