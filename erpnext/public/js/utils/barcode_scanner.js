@@ -41,38 +41,52 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	    return new Promise(resolve => setTimeout(resolve, ms));
 	}
 	async process_scan() {
-		return new Promise((resolve, reject) => {
-			let me = this;
-
-			const input = this.scan_barcode_field.value;
-			this.scan_barcode_field.set_value("");
-			await this.delay(1500); // Wait for 1.5 seconds
-			if (!input) {
-				return;
-			}
-
-			this.scan_api_call(input, (r) => {
-				const data = r && r.message;
-				if (!data || Object.keys(data).length === 0) {
-					this.show_alert(__("Cannot find Item with this Barcode"), "red");
-					this.clean_up();
-					this.play_fail_sound();
-					reject();
-					return;
-				}
-
-				me.update_table(data).then(row => {
-					this.play_success_sound();
-					resolve(row);
-				}).catch(() => {
-					this.play_fail_sound();
-					reject();
-				});
-				
-			});
-		});
+	    let me = this;
+	
+	    const input = this.scan_barcode_field.value;
+	    this.scan_barcode_field.set_value(""); // Clear the input field
+	
+	    return new Promise((resolve, reject) => {
+	        if (!input) {
+	            return;
+	        }
+	
+	        this.scan_api_call(input, async (r) => {
+	            const data = r && r.message;
+	            if (!data || Object.keys(data).length === 0) {
+	                this.show_alert(__("Cannot find Item with this Barcode"), "red");
+	                this.clean_up();
+	                this.play_fail_sound();
+	                // Use an immediately invoked async function to include the delay after reject
+	                (async () => {
+	                    await this.delay(1500);
+	                    reject();
+	                    // Any code here will execute after the delay and rejection
+	                })();
+	                return;
+	            }
+	
+	            me.update_table(data).then(async (row) => {
+	                this.play_success_sound();
+	                // Use an immediately invoked async function to include the delay after resolve
+	                (async () => {
+	                    await this.delay(1500);
+	                    resolve(row);
+	                    // Any code here will execute after the delay and resolution
+	                })();
+	            }).catch(() => {
+	                this.play_fail_sound();
+	                // Similarly, include a delay after reject in case of an error during update_table
+	                (async () => {
+	                    await this.delay(1500);
+	                    reject();
+	                    // Handle any cleanup or additional actions here
+	                })();
+	            });
+	        });
+	    });
 	}
-
+	
 	scan_api_call(input, callback) {
 		frappe
 			.call({
