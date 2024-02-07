@@ -39,16 +39,22 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	}
 
 	process_scan() {
-		return new Promise((resolve, reject) => {
-			let me = this;
-
-			const input = this.scan_barcode_field.value;
-			this.scan_barcode_field.set_value("");
-			if (!input) {
-				return;
-			}
-
-			// Introduce a delay of 1.5 seconds before proceeding
+	    return new Promise((resolve, reject) => {
+	        let me = this;
+	
+	        const input = this.scan_barcode_field.value;
+	        // Disable the field to prevent further input immediately
+	        this.scan_barcode_field.df.read_only = true;
+	        this.scan_barcode_field.refresh();
+	
+	        if (!input) {
+	            // Re-enable the field if no input was captured
+	            this.scan_barcode_field.df.read_only = false;
+	            this.scan_barcode_field.refresh();
+	            return;
+	        }
+	
+	        // Delay further processing by 1.5 seconds
 	        setTimeout(() => {
 	            this.scan_api_call(input, (r) => {
 	                const data = r && r.message;
@@ -56,6 +62,9 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	                    this.show_alert(__("Cannot find Item with this Barcode"), "red");
 	                    this.clean_up();
 	                    this.play_fail_sound();
+	                    // Ensure the field is re-enabled after the process
+	                    this.scan_barcode_field.df.read_only = false;
+	                    this.scan_barcode_field.refresh();
 	                    reject();
 	                    return;
 	                }
@@ -66,10 +75,14 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	                }).catch(() => {
 	                    this.play_fail_sound();
 	                    reject();
+	                }).finally(() => {
+	                    // Re-enable the field after processing is complete
+	                    this.scan_barcode_field.df.read_only = false;
+	                    this.scan_barcode_field.refresh();
 	                });
 	            });
-	        }, 1500); // Delay set to 1500 milliseconds (1.5 seconds)
-		});
+	        }, 1500); // Delay set for 1.5 seconds
+	    });
 	}
 
 	scan_api_call(input, callback) {
