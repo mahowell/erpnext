@@ -46,6 +46,7 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 
 			const input = this.scan_barcode_field.value;
 			this.scan_barcode_field.set_value("");
+			await this.delay(1500); // Wait for 1.5 seconds
 			if (!input) {
 				return;
 			}
@@ -70,7 +71,6 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 				
 			});
 		});
-		await this.delay(1500); // Pause for 1.5 second
 	}
 
 	scan_api_call(input, callback) {
