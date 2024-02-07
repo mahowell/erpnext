@@ -67,9 +67,10 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 					this.play_fail_sound();
 					reject();
 				});
-				await this.delay(1500); // Pause for 1.5 second
+				
 			});
 		});
+		await this.delay(1500); // Pause for 1.5 second
 	}
 
 	scan_api_call(input, callback) {
