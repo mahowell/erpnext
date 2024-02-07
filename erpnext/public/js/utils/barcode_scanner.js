@@ -24,9 +24,8 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 
 		// optional sound name to play when scan either fails or passes.
 		// see https://frappeframework.com/docs/v14/user/en/python-api/hooks#sounds
-		this.success_sound = opts.frm.play_success_sound || "beep";
-		this.fail_sound = opts.frm.play_fail_sound || "beep-inverse";
-		this.ignoreEnter = false;
+		this.success_sound = opts.play_success_sound;
+		this.fail_sound = opts.play_fail_sound;
 
 		// any API that takes `search_value` as input and returns dictionary as follows
 		// {
@@ -40,51 +39,36 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	}
 
 	process_scan() {
-	    return new Promise((resolve, reject) => {
-	        let me = this;
-	
-	        const input = this.scan_barcode_field.value;
-	        this.scan_barcode_field.set_value("");
-	        if (!input) {
-	            return;
-	        }
-	
-	        // Set ignoreEnter to true to ignore Enter key presses
-	        this.ignoreEnter = true;
-	
-	        // Temporarily ignore Enter key presses
-	        $(this.scan_barcode_field.input).on('keydown', function(e) {
-	            if (me.ignoreEnter && e.keyCode === 13) { // 13 is the Enter key
-	                e.preventDefault();
-	                return false;
-	            }
-	        });
-	
-	        // Reset the ignoreEnter flag after 1.5 seconds, re-enabling Enter key
-	        setTimeout(() => {
-	            me.ignoreEnter = false;
-	        }, 1500);
-	
-	        this.scan_api_call(input, (r) => {
-	            const data = r && r.message;
-	            if (!data || Object.keys(data).length === 0) {
-	                this.show_alert(__("Cannot find Item with this Barcode"), "red");
-	                this.clean_up();
-	                this.play_fail_sound();
-	                reject();
-	                return;
-	            }
-	
-	            me.update_table(data).then(row => {
-	                this.play_success_sound();
-	                resolve(row);
-	            }).catch(() => {
-	                this.play_fail_sound();
-	                reject();
-	            });
-	        });
-	    });
+		return new Promise((resolve, reject) => {
+			let me = this;
+
+			const input = this.scan_barcode_field.value;
+			this.scan_barcode_field.set_value("");
+			if (!input) {
+				return;
+			}
+
+			this.scan_api_call(input, (r) => {
+				const data = r && r.message;
+				if (!data || Object.keys(data).length === 0) {
+					this.show_alert(__("Cannot find Item with this Barcode"), "red");
+					this.clean_up();
+					this.play_fail_sound();
+					reject();
+					return;
+				}
+
+				me.update_table(data).then(row => {
+					this.play_success_sound();
+					resolve(row);
+				}).catch(() => {
+					this.play_fail_sound();
+					reject();
+				});
+			});
+		});
 	}
+
 	scan_api_call(input, callback) {
 		frappe
 			.call({
@@ -447,8 +431,6 @@ erpnext.utils.BarcodeScanner = class BarcodeScanner {
 	clean_up() {
 		this.scan_barcode_field.set_value("");
 		refresh_field(this.items_table_name);
-		// Make sure to remove the keydown event listener to avoid memory leaks
-    	$(this.scan_barcode_field.input).off('keydown');
 	}
 	show_alert(msg, indicator, duration=3) {
 		frappe.show_alert({message: msg, indicator: indicator}, duration);
